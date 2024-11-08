@@ -1,115 +1,86 @@
-import Image from "next/image";
-import localFont from "next/font/local";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { FaCheckCircle, FaUser } from "react-icons/fa"; // Importing React Icons
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
+const Home = () => {
+  const [users, setUsers] = useState([]);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [popupUser, setPopupUser] = useState("");
 
-export default function Home() {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(
+        "http://localhost:7000/api/user/v1/get-users"
+      );
+      if (Array.isArray(response.data.data)) {
+        setUsers(response.data.data);
+      } else {
+        console.error(
+          "Expected an array of users, but received:",
+          response.data
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const claimPoints = async (username) => {
+    try {
+      setIsPopupVisible(true); // Show popup before API call
+      await axios.patch("http://localhost:7000/api/user/v1/claim-points", {
+        username,
+      });
+      fetchUsers();
+      setPopupUser(username);
+    } catch (error) {
+      console.error("Error claiming points:", error);
+    } finally {
+      setTimeout(() => setIsPopupVisible(false), 2000); // Hide popup after 2 seconds
+    }
+  };
+
   return (
-    <div
-      className={`${geistSans.variable} ${geistMono.variable} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/pages/index.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="container mx-auto p-4 flex flex-col justify-center items-center">
+      <h1 className="text-3xl font-semibold text-center mb-6 text-indigo-600">
+        Home Page
+      </h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* Ordered List for Numbered Items */}
+      <ol className="list-decimal space-y-4 sm:space-y-6 md:space-y-8 border border-gray-300 text-indigo-500 w-full md:max-w-4xl pl-6">
+        {users.slice(0, 10).map((user, index) => (
+          <li
+            key={user._id}
+            className="p-4 rounded-lg transition duration-200 ease-in-out cursor-pointer text-lg sm:text-xl md:text-2xl flex items-center justify-between hover:bg-indigo-100 hover:border-gray-300"
+            onClick={() => claimPoints(user.username)}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <div className="flex items-center space-x-2">
+              {/* Person Icon for the User */}
+              <FaUser className="text-indigo-700 text-xl" />
+              <span className="font-semibold text-indigo-600">
+                {user.firstName} {user.lastName}
+              </span>
+            </div>
+            <span className="text-lg text-blue-600">Points: {user.Points}</span>
+          </li>
+        ))}
+      </ol>
+
+      {/* Popup Notification */}
+      {isPopupVisible && (
+        <div className="fixed top-40 right-50 bg-white p-4 rounded-lg shadow-lg flex items-center space-x-2 z-50 transition-opacity duration-300 opacity-90 max-w-sm w-full sm:max-w-xs md:max-w-md">
+          <FaCheckCircle className="text-blue-500 text-2xl" />
+          <span className="text-blue-600 font-medium text-sm sm:text-base">
+            Points claimed successfully for {popupUser}...
+          </span>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
     </div>
   );
-}
+};
+
+export default Home;
